@@ -1,0 +1,40 @@
+# Node modules
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env*
+!.env.example
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/
+*.swp
+
+# Optional: Ignore test coverage output
+coverage/
+
+# Optional: Ignore local Next.js cache (if using Turbopack)
+.cache/
+
+# Optional: Ignore build logs
+build.log
+
+# Optional: Ignore exports for static builds
+export/
+
+# Optional: Ignore local serverless config
+.vercel/
