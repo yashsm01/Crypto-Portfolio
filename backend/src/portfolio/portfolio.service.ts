@@ -26,12 +26,12 @@ export class PortfolioService {
     }
 
     const price = await this.getCryptoPrice(createPortfolioDto.symbol);
-    const totalValue = price * quantityNum;
+    const totalValue = parseFloat((price * quantityNum).toFixed(14));
 
     return this.portfolioModel.create({
       ...createPortfolioDto,
       userId,
-      currentPrice: price,
+      currentPrice: parseFloat(price.toFixed(14)),
       totalValue,
       quantity: quantityNum.toFixed(8), // Store with 8 decimal places
     });
@@ -48,7 +48,7 @@ export class PortfolioService {
         try {
           const oldPrice = portfolio.currentPrice;
           const price = await this.getCryptoPrice(portfolio.symbol);
-          const totalValue = price * parseFloat(portfolio.quantity);
+          const totalValue = parseFloat((price * parseFloat(portfolio.quantity)).toFixed(14));
           
           await portfolio.update({
             currentPrice: price,

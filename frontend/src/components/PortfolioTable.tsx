@@ -21,34 +21,40 @@ import type { RootState, AppDispatch } from '../store/store';
 import { AlertMessage } from './AlertMessage';
 
 // Helper function to safely format numbers with proper decimal handling
-const formatCurrency = (value: number | null | undefined): string => {
-  if (typeof value !== 'number') return '$0.00';
-  
-  // Handle different ranges of numbers
+const formatCurrency = (value: number | string | null | undefined): string => {
+  console.log('formatCurrency', value, typeof value);
+
+  // Convert string to number if needed
+  if (typeof value === 'string') {
+    value = parseFloat(value);
+  }
+
+  if (typeof value !== 'number' || isNaN(value)) return '$0.00';
+
   if (value >= 1) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 16,
     }).format(value);
   } else if (value >= 0.01) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 4,
-      maximumFractionDigits: 4
+      maximumFractionDigits: 8,
     }).format(value);
   } else {
-    // For very small numbers (like PEPE price)
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 8,
-      maximumFractionDigits: 8
+      maximumFractionDigits: 16,
     }).format(value);
   }
 };
+
 
 const formatQuantity = (value: string | number | null | undefined): string => {
   if (!value) return '0.00000000';

@@ -36,13 +36,13 @@ export class Portfolio extends Model {
   quantity: string;
 
   @Column({
-    type: DataType.DECIMAL(18, 2),
+    type: DataType.DECIMAL(24, 14),
     allowNull: true,
   })
   currentPrice: number;
 
   @Column({
-    type: DataType.DECIMAL(18, 2),
+    type: DataType.DECIMAL(24, 14),
     allowNull: true,
   })
   totalValue: number;

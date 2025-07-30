@@ -19,7 +19,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3000:3000"   # Backend
+      - "9229:9229"   # Debugger
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432

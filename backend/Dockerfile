@@ -16,7 +16,7 @@ RUN apk add --no-cache curl
 
 # Add healthcheck
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:3000 || exit 1
+  CMD curl -f http://localhost:3000/api || exit 1
 
 # Use development mode with proper logging
 ENV NODE_ENV=development
