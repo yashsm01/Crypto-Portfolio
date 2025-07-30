@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, Min } from 'class-validator';
+import { IsNotEmpty, IsString, Matches, IsNumberString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreatePortfolioDto {
@@ -11,12 +11,14 @@ export class CreatePortfolioDto {
   symbol: string;
 
   @ApiProperty({
-    description: 'Quantity of cryptocurrency',
-    example: 0.5,
-    minimum: 0,
+    description: 'Quantity of cryptocurrency (as string, up to 8 decimal places)',
+    example: '0.12345678',
+    pattern: '^[0-9]+\.?[0-9]*$',
   })
   @IsNotEmpty()
-  @IsNumber()
-  @Min(0)
-  quantity: number;
+  @IsNumberString()
+  @Matches(/^[0-9]+\.?[0-9]*$/, {
+    message: 'Quantity must be a valid number with optional decimal places',
+  })
+  quantity: string;
 } 

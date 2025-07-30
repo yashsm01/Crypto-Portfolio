@@ -38,12 +38,18 @@ const handleAuthError = (error: any): string => {
   return 'An unexpected error occurred';
 };
 
+// Helper function to persist auth data
+const persistAuthData = (response: AuthResponse) => {
+  localStorage.setItem('token', response.access_token);
+  localStorage.setItem('user', JSON.stringify(response.user));
+};
+
 export const login = createAsyncThunk<AuthResponse, LoginCredentials>(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials);
-      localStorage.setItem('token', response.data.access_token);
+      persistAuthData(response.data);
       return response.data;
     } catch (error) {
       return rejectWithValue(handleAuthError(error));
@@ -56,7 +62,7 @@ export const register = createAsyncThunk<AuthResponse, RegisterCredentials>(
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await axios.post<AuthResponse>(`${API_URL}/auth/register`, credentials);
-      localStorage.setItem('token', response.data.access_token);
+      persistAuthData(response.data);
       return response.data;
     } catch (error) {
       return rejectWithValue(handleAuthError(error));
@@ -67,17 +73,32 @@ export const register = createAsyncThunk<AuthResponse, RegisterCredentials>(
 export const logout = createAsyncThunk(
   'auth/logout',
   async (_, { dispatch }) => {
+    // Clear persisted auth data
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     // Clear all application state
     dispatch({ type: 'RESET_STATE' });
-    // Force reload to clear any cached data
-    window.location.reload();
   }
 );
 
+// Helper functions to manage persisted auth state
+const loadPersistedAuth = () => {
+  try {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    return { token, user };
+  } catch (error) {
+    console.error('Error loading persisted auth state:', error);
+    return { token: null, user: null };
+  }
+};
+
+const { token, user } = loadPersistedAuth();
+
 const initialState: AuthState = {
-  user: null,
-  token: localStorage.getItem('token'),
+  user,
+  token,
   loading: false,
   error: null,
 };

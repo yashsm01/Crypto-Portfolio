@@ -84,6 +84,7 @@ const portfolioSlice = createSlice({
         state.error = null;
       })
       .addCase(addPortfolioEntry.fulfilled, (state, action) => {
+        console.log('addPortfolioEntry.fulfilled', action.payload);
         state.entries.push(action.payload);
         state.error = null;
       })

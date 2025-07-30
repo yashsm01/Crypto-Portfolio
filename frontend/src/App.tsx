@@ -1,5 +1,5 @@
 import { useSelector } from 'react-redux';
-import { Container, CssBaseline } from '@mui/material';
+import { Container, CssBaseline, Box, CircularProgress } from '@mui/material';
 import { AddCryptoForm } from './components/AddCryptoForm';
 import { PortfolioTable } from './components/PortfolioTable';
 import { LoginForm } from './components/LoginForm';
@@ -10,19 +10,43 @@ import { useState, useEffect } from 'react';
 import type { RootState } from './store/store';
 
 function App() {
-  const { token, error } = useSelector((state: RootState) => state.auth);
+  const { token, user, error, loading } = useSelector((state: RootState) => state.auth);
   const [isLogin, setIsLogin] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Check authentication status on mount and token change
+  // Initialize auth state
   useEffect(() => {
-    if (!token) {
-      // If no token, show login page
+    const initAuth = async () => {
+      // Add a small delay to prevent flash of login screen
+      await new Promise(resolve => setTimeout(resolve, 100));
+      setIsInitialized(true);
+    };
+    initAuth();
+  }, []);
+
+  // Handle auth state changes
+  useEffect(() => {
+    if (!token || !user) {
       setIsLogin(true);
     }
-  }, [token]);
+  }, [token, user]);
 
   const handleSwitchToRegister = () => setIsLogin(false);
   const handleSwitchToLogin = () => setIsLogin(true);
+
+  // Show loading spinner while initializing
+  if (!isInitialized || loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh' 
+      }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   // If not authenticated, show login/register forms
   if (!token) {

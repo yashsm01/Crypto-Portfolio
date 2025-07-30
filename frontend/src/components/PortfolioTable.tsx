@@ -20,16 +20,40 @@ import { fetchPortfolio, deletePortfolioEntry } from '../store/portfolioSlice';
 import type { RootState, AppDispatch } from '../store/store';
 import { AlertMessage } from './AlertMessage';
 
-// Helper function to safely format numbers
+// Helper function to safely format numbers with proper decimal handling
 const formatCurrency = (value: number | null | undefined): string => {
   if (typeof value !== 'number') return '$0.00';
-  return `$${value.toFixed(2)}`;
+  
+  // Handle different ranges of numbers
+  if (value >= 1) {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  } else if (value >= 0.01) {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4
+    }).format(value);
+  } else {
+    // For very small numbers (like PEPE price)
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 8,
+      maximumFractionDigits: 8
+    }).format(value);
+  }
 };
 
 const formatQuantity = (value: string | number | null | undefined): string => {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return value.toFixed(8);
-  return '0.00000000';
+  if (!value) return '0.00000000';
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  return numValue.toFixed(8);
 };
 
 export const PortfolioTable = () => {

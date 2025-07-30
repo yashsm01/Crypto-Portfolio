@@ -2,30 +2,38 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Portfolio } from './entities/portfolio.entity';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
+import { RedisService } from '../cache/redis.service';
+import { KafkaService } from '../kafka/kafka.service';
 import axios from 'axios';
 
 @Injectable()
 export class PortfolioService {
-  private priceCache: Map<string, { price: number; timestamp: number }> = new Map();
-  private readonly CACHE_DURATION = 60 * 1000; // 1 minute cache
   private readonly MAX_RETRIES = 3;
   private readonly INITIAL_RETRY_DELAY = 1000; // 1 second
 
   constructor(
     @InjectModel(Portfolio)
     private portfolioModel: typeof Portfolio,
+    private readonly redisService: RedisService,
+    private readonly kafkaService: KafkaService,
   ) {}
 
   async create(createPortfolioDto: CreatePortfolioDto, userId: number): Promise<Portfolio> {
+    // Validate quantity is a positive number
+    const quantityNum = parseFloat(createPortfolioDto.quantity);
+    if (isNaN(quantityNum) || quantityNum <= 0) {
+      throw new Error('Quantity must be a positive number');
+    }
+
     const price = await this.getCryptoPrice(createPortfolioDto.symbol);
-    const totalValue = price * createPortfolioDto.quantity;
+    const totalValue = price * quantityNum;
 
     return this.portfolioModel.create({
       ...createPortfolioDto,
       userId,
       currentPrice: price,
       totalValue,
-      quantity: createPortfolioDto.quantity.toFixed(8),
+      quantity: quantityNum.toFixed(8), // Store with 8 decimal places
     });
   }
 
@@ -38,6 +46,7 @@ export class PortfolioService {
     const updatedPortfolios = await Promise.all(
       portfolios.map(async (portfolio) => {
         try {
+          const oldPrice = portfolio.currentPrice;
           const price = await this.getCryptoPrice(portfolio.symbol);
           const totalValue = price * parseFloat(portfolio.quantity);
           
@@ -45,6 +54,14 @@ export class PortfolioService {
             currentPrice: price,
             totalValue,
           });
+
+          // Notify about significant price changes
+          await this.kafkaService.notifyPriceChange(
+            portfolio.symbol,
+            oldPrice,
+            price,
+            userId
+          );
           
           return portfolio;
         } catch (error) {
@@ -70,10 +87,10 @@ export class PortfolioService {
   }
 
   private async getCryptoPrice(symbol: string): Promise<number> {
-    // Check cache first
-    const cachedData = this.priceCache.get(symbol);
-    if (cachedData && Date.now() - cachedData.timestamp < this.CACHE_DURATION) {
-      return cachedData.price;
+    // Try to get price from cache first
+    const cachedPrice = await this.redisService.getCachedPrice(symbol);
+    if (cachedPrice !== null) {
+      return cachedPrice;
     }
 
     // If not in cache, fetch from API with retry logic
@@ -94,11 +111,10 @@ export class PortfolioService {
 
       const price = response.data[this.getCoingeckoId(symbol)].usd;
       
-      // Update cache
-      this.priceCache.set(symbol, {
-        price,
-        timestamp: Date.now(),
-      });
+      // Cache the price
+      await this.redisService.setCachedPrice(symbol, price);
+      // Publish price update
+      await this.redisService.publishPriceUpdate(symbol, price);
 
       return price;
     } catch (error) {
@@ -112,11 +128,11 @@ export class PortfolioService {
         return this.fetchCryptoPriceWithRetry(symbol, retryCount + 1);
       }
 
-      // If we have cached data, return it even if expired
-      const cachedData = this.priceCache.get(symbol);
-      if (cachedData) {
-        console.log(`Using expired cache for ${symbol} due to API error`);
-        return cachedData.price;
+      // Try to get cached price even if expired
+      const cachedPrice = await this.redisService.getCachedPrice(symbol);
+      if (cachedPrice !== null) {
+        console.log(`Using cached price for ${symbol} due to API error`);
+        return cachedPrice;
       }
 
       throw new Error(`Unable to fetch price for ${symbol}`);
@@ -124,7 +140,6 @@ export class PortfolioService {
   }
 
   private getCoingeckoId(symbol: string): string {
-    // Map common symbols to CoinGecko IDs
     const symbolMap = {
       'BTC': 'bitcoin',
       'ETH': 'ethereum',
@@ -137,7 +152,6 @@ export class PortfolioService {
       'DOT': 'polkadot',
       'MATIC': 'matic-network',
       'PEPE': 'pepe',
-      // Add more mappings as needed
     };
 
     return symbolMap[symbol.toUpperCase()] || symbol.toLowerCase();
