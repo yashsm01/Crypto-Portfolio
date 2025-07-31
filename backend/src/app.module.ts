@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { PortfolioModule } from './portfolio/portfolio.module';
 import { AuthModule } from './auth/auth.module';
+import { PortfolioModule } from './portfolio/portfolio.module';
+import { KafkaModule } from './kafka/kafka.module';
+import { WebsocketModule } from './websocket/websocket.module';
 import databaseConfig from './config/database.config';
-import { User } from './users/entities/user.entity';
-import { Portfolio } from './portfolio/entities/portfolio.entity';
 
 @Module({
   imports: [
@@ -14,17 +14,21 @@ import { Portfolio } from './portfolio/entities/portfolio.entity';
       load: [databaseConfig],
     }),
     SequelizeModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        ...configService.get('database'),
-        models: [User, Portfolio],
+      useFactory: () => ({
+        dialect: 'postgres',
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT, 10) || 5432,
+        username: process.env.DB_USERNAME || 'postgres',
+        password: process.env.DB_PASSWORD || 'postgres',
+        database: process.env.DB_NAME || 'crypto_portfolio',
         autoLoadModels: true,
         synchronize: true,
       }),
-      inject: [ConfigService],
     }),
-    PortfolioModule,
     AuthModule,
+    PortfolioModule,
+    KafkaModule,
+    WebsocketModule,
   ],
 })
 export class AppModule {}

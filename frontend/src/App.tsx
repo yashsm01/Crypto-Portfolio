@@ -6,6 +6,8 @@ import { LoginForm } from './components/LoginForm';
 import { RegisterForm } from './components/RegisterForm';
 import { Header } from './components/Header';
 import { AlertMessage } from './components/AlertMessage';
+import { PriceAlerts } from './components/PriceAlerts';
+import { KafkaTest } from './components/KafkaTest';
 import { useState, useEffect } from 'react';
 import type { RootState } from './store/store';
 
@@ -68,9 +70,11 @@ function App() {
     <>
       <CssBaseline />
       <Header />
+      <PriceAlerts />
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         <AddCryptoForm />
         <PortfolioTable />
+        <KafkaTest />
       </Container>
     </>
   );
